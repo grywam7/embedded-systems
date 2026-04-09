@@ -3,7 +3,7 @@ Project for Embeded Systems class, in 2026
 
 ## Warstwa sprzętowa:
  - matryca led 64x64
- - controll panel, made from 4 buttons
+ - controll panel, made from 6 buttons or 1 button & joystick
  - raspberry pi pico 2W
  - dell thin-client wyse 3030
 
@@ -15,14 +15,26 @@ Project for Embeded Systems class, in 2026
    - do tyłu
    - pauza
    - do przodu
+   - volume up
+   - volume down
    - wyświetl kod QR
+
+### Microkontroler
+ - inicjalizujemy wyswietlacz i wyświetlamy jakąś grafike powitalną
+ - co x sekund zainicjalizować komunikacje USB - porozumieć się z thin-clientem i odebrać odpowiedź o prawidłowym setupie
+ - odebrac od serwera informaje że jest gotowy do działania
+ - odebrać wygenerowany obrazek z kodem QR i zapisać sobie go w pamięci np. RAM
+ - zaczyna sie główna pętla obsługi muzyki
+   - odbieramy grafike z okładką utworu
+   - obsługujemy przciski jako callbacki wysyłające wiadomośc po USB ([cokolwiek to znaczy](https://docs.micropython.org/en/latest/pyboard/tutorial/switch.html))
+   - co x czasu wysyłamy wiadomość timeout czy dalej serwer działa, jeśli nie wyswietlamy obrazek errora
+     - jak nie działa, to wracamy do etapu inicjalizacji i próbujemy go zrobić co x sekund
   
 ### Zadania thin-clienta
  - obsługa wifi-managera (uzyskanie hasła do wi-fi i podłączenie się do lokalnej sieci)
- - obsługa streamingu muzyki via spotify/youtube music
- - przekazywanie poleceń od mikrokontrolera do streamingu muzyki (stop, next, previous)
+ - obsługa cachowania muzyki via spotify/youtube i baze w SQLite
+ - przekazywanie poleceń od mikrokontrolera do odtwarzacza muzyki (stop, next, previous)
  - generowanie grafiki, kodu QR oraz przekazywanie do mikrokontrolera
- - wyświetlanie 
 
 ### Dodatkowe funkcjonalności
  - mikrokontroler z thin-clientem może być połączony kablem USB, lub komunikacja poprzez wi-fi (better user experience)
