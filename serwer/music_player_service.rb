@@ -15,6 +15,10 @@ class MusicPlayerService
     Thread.new { play_loop }
   end
 
+  #TO DO
+  # ->button "PREVIOS" - if we change Schedule, to have flag "played" instead of removingi it, we can have history of played songs
+  # -> so previos wold be find next song with flag payed false, and for songs id - 2 & id - 1, set played to false, and send STOP 
+  # -> command, so it will stop current ad find id-2 as next song to play
   def execute_command(command)
     if command == 'PAUSE'
       File.open(@fifo_path, 'w') { |f| f.puts "P" }
@@ -30,11 +34,6 @@ class MusicPlayerService
   end
 
   private
-
-# TO DO: 
-# @H VOLUME/V <percent>: set volume in (0..100...); float value
-# @H PAUSE/P: pause playback
-# @H STOP/S: stop playback (closes file)
 
   def schedule(song)
     File.open(@fifo_path, 'w') { |f| f.puts "L #{path_for(song)}"}

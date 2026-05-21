@@ -2,7 +2,11 @@ class MusicDownloaderService
 
   def initialize(song_url)
     @song_url = song_url
-    # ten thread zupełnie nic nie robi - to bardziej idea na przyszłosć żeby to był serwis co biega w tle jak music_player_service
+    # TO DO:
+    # -> change this servie to async, so it doesn't block web server while downloading.
+    # -> when spotDL fails to download song - we might be lucky using metadata to download it via yt-dlp
+    # -> but, as this process takes time, we need to somehow inform user his request failed 
+    # -> so maybe in scheduled song just display it in RED colors, with error message
     # _thread = Thread.new do
     return download_spotify if @song_url.include?('spotify')
     return download_other

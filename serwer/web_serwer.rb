@@ -40,11 +40,11 @@ get '/playlist' do # send playlist as json
 end
 
 post '/song/new' do # add new song to schedule
-  # dodaj do modelu Schedule
+  # add to Schedule model, with flag is_ready = false
   _song_url = request.params['song_url'].strip
   _song_url.prepend('https://') if _song_url !~ /http/i
 
-  # dodaj do kolejki do pobierania
+  # add to downloader -> it wold be best if it was async
   if _song_url.include?('spotify')
     _song_id = MusicDownloaderService.new(_song_url).download_spotify
   else
