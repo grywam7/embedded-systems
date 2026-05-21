@@ -1,11 +1,89 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    addressable (2.9.0)
+      public_suffix (>= 2.0.2, < 8.0)
+    audio-playback (0.0.8)
+      ffi-libc (~> 0.1, >= 0.1.0)
+      ffi-portaudio (~> 0.1, >= 0.1.2)
+      ruby-audio (~> 1.6, >= 1.6.1)
     base64 (0.3.0)
+    bcrypt (3.1.22)
+    bcrypt-ruby (3.1.5)
+      bcrypt (>= 3.1.3)
+    coderay (1.1.3)
+    data_mapper (1.2.0)
+      dm-aggregates (~> 1.2.0)
+      dm-constraints (~> 1.2.0)
+      dm-core (~> 1.2.0)
+      dm-migrations (~> 1.2.0)
+      dm-serializer (~> 1.2.0)
+      dm-timestamps (~> 1.2.0)
+      dm-transactions (~> 1.2.0)
+      dm-types (~> 1.2.0)
+      dm-validations (~> 1.2.0)
+    data_objects (0.10.17)
+      addressable (~> 2.1)
+    dm-aggregates (1.2.0)
+      dm-core (~> 1.2.0)
+    dm-constraints (1.2.0)
+      dm-core (~> 1.2.0)
+    dm-core (1.2.1)
+      addressable (~> 2.3)
+    dm-do-adapter (1.2.0)
+      data_objects (~> 0.10.6)
+      dm-core (~> 1.2.0)
+    dm-migrations (1.2.0)
+      dm-core (~> 1.2.0)
+    dm-serializer (1.2.2)
+      dm-core (~> 1.2.0)
+      fastercsv (~> 1.5)
+      json (~> 1.6)
+      json_pure (~> 1.6)
+      multi_json (~> 1.0)
+    dm-sqlite-adapter (1.2.0)
+      dm-do-adapter (~> 1.2.0)
+      do_sqlite3 (~> 0.10.6)
+    dm-timestamps (1.2.0)
+      dm-core (~> 1.2.0)
+    dm-transactions (1.2.0)
+      dm-core (~> 1.2.0)
+    dm-types (1.2.2)
+      bcrypt-ruby (~> 3.0)
+      dm-core (~> 1.2.0)
+      fastercsv (~> 1.5)
+      json (~> 1.6)
+      multi_json (~> 1.0)
+      stringex (~> 1.4)
+      uuidtools (~> 2.1)
+    dm-validations (1.2.0)
+      dm-core (~> 1.2.0)
+    do_sqlite3 (0.10.17)
+      data_objects (= 0.10.17)
+    fastercsv (1.5.5)
+    ffi (1.17.4-x86_64-darwin)
+    ffi-libc (0.1.1)
+      ffi (~> 1.0)
+    ffi-portaudio (0.1.3)
+      ffi
+    haml (6.3.0)
+      temple (>= 0.8.2)
+      thor
+      tilt
+    io-console (0.8.2)
+    json (1.8.6)
+    json_pure (1.8.6)
     logger (1.7.0)
+    method_source (1.1.0)
+    multi_json (1.19.1)
     mustermann (3.0.4)
       ruby2_keywords (~> 0.0.1)
     nio4r (2.7.5)
+    pry (0.16.0)
+      coderay (~> 1.1)
+      method_source (~> 1.0)
+      reline (>= 0.6.0)
+    public_suffix (6.0.2)
     puma (8.0.0)
       nio4r (~> 2.0)
     rack (3.2.6)
@@ -18,6 +96,12 @@ GEM
       rack (>= 3.0.0)
     rackup (2.3.1)
       rack (>= 3)
+    reline (0.6.3)
+      io-console (~> 0.5)
+    ruby-audio (1.6.1)
+    ruby-vips (2.3.0)
+      ffi (~> 1.12)
+      logger
     ruby2_keywords (0.0.5)
     sinatra (4.2.1)
       logger (>= 1.6.0)
@@ -26,15 +110,27 @@ GEM
       rack-protection (= 4.2.1)
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
+    stringex (1.5.1)
+    taglib-ruby (2.0.0)
+    temple (0.10.3)
+    thor (1.5.0)
     tilt (2.7.0)
+    uuidtools (2.2.0)
 
 PLATFORMS
   x86_64-darwin-21
 
 DEPENDENCIES
+  audio-playback
+  data_mapper
+  dm-sqlite-adapter
+  haml
+  pry
   puma
   rackup
+  ruby-vips
   sinatra
+  taglib-ruby
 
 BUNDLED WITH
    2.2.33
