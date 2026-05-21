@@ -1,0 +1,37 @@
+%link{ href:"https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css", rel:"stylesheet", integrity:"sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB", crossorigin:"anonymous" }
+%script{ src:"https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js", integrity:"sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI", crossorigin:"anonymous" }
+
+- if !@alert.nil?
+  - if @alert == 'success'
+    .alert.alert-success 
+      Succesfuly added your song to playlist
+  - elsif @alert == 'error'
+    .alert.alert-danger
+      Something went wrong, maybe the url you privided was incorect?
+
+
+
+.container.m-5
+  .row
+    .col-8
+      .card
+        .card_body
+          .card_title.m-3 Add next song to playlist, by submitting its url below (youtube / spotify):
+          %hr
+          .card_text.m-3
+            %form{ action: "/song/new", method: "post", target: "_parent" }
+              %label{ for: "song_url" } Url to song:
+              %input{ type: "text", id: "song_url", name: "song_url", required: true, size: 50}
+              %input{ type: "submit", value: "Add Song"}
+
+    .col-4
+      - @schedule.each do |schedule|
+        .card.song-card.m-1
+          .row.g-0
+            .col-3
+              %img.m-2.card-img-top{ src: "/cover_images/#{schedule.song.id}.jpg", alt: schedule.song.title, style: "height: 100px; width: 100px !important;"  }
+            .col-9
+              .card-body
+                .card-title= schedule.song.title
+                .card-text= "#{schedule.song.artist} - #{schedule.song.album}"
+                .card-text= "Duration: #{schedule.song.duration_string}"

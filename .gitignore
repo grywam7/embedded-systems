@@ -54,3 +54,24 @@ build-iPhoneSimulator/
 
 # Used by RuboCop. Remote config files pulled in from inherit_from directive.
 # .rubocop-https?--*
+
+# OS:
+.DS_Store
+Thumbs.db
+
+# Python venv (spotdl):
+serwer/venv/
+serwer/bin/
+serwer/include/
+serwer/lib/
+serwer/share/
+serwer/pyvenv.cfg
+__pycache__/
+*.pyc
+
+# app specific:
+serwer/music.db
+serwer/music_data/
+serwer/public/cover_images/
+serwer/title, artist/
+*.spotdl
