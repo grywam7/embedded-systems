@@ -6,6 +6,7 @@ class Song
 	property :artist, String
 	property :album, String
 	property :duration, Integer
+  property :is_ready, Boolean, default: false
   
   has n, :schedules
 

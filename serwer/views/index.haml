@@ -8,28 +8,41 @@
   - elsif @alert == 'error'
     .alert.alert-danger
       Something went wrong, maybe the url you privided was incorect?
-
-
+  - elsif @alert == 'unknown'
+    .alert.alert-warn 
+      We cant find this song, you can try different provider.
 
 .container.m-5
   .row
     .col-8
-      .card
+      .card.m-1
         .card_body
           .card_title.m-3 Add next song to playlist, by submitting its url below (youtube / spotify):
           %hr
           .card_text.m-3
             %form{ action: "/song/new", method: "post", target: "_parent" }
               %label{ for: "song_url" } Url to song:
-              %input{ type: "text", id: "song_url", name: "song_url", required: true, size: 50}
+              %input{ type: "text", id: "song_url", name: "song_url", required: true, class: "w-50"}
               %input{ type: "submit", value: "Add Song"}
+          %hr
+          .row.mb-3
+            .col-2.mx-auto.d-grid
+              %a{href: "/player/pause", class: "btn btn-outline-primary" } ▶||
+            .col-2.mx-auto.d-grid
+              %a{href: "/player/next", class: "btn btn-outline-primary" } ▶▶|
+            .col-2.mx-auto.d-grid
+              %a{href: "/player/volume_down", class: "btn btn-outline-primary" } ▼
+            .col-2.mx-auto.d-grid
+              .btn.btn-outline-info.disabled= @volume
+            .col-2.mx-auto.d-grid
+              %a{href: "/player/volume_up", class: "btn btn-outline-primary" } ▲
 
     .col-4
       - @schedule.each do |schedule|
         .card.song-card.m-1
           .row.g-0
             .col-3
-              %img.m-2.card-img-top{ src: "/cover_images/#{schedule.song.id}.jpg", alt: schedule.song.title, style: "height: 100px; width: 100px !important;"  }
+              %img.m-2.card-img-top{ src: "/cover_images_64px/#{schedule.song.id}.jpg", alt: schedule.song.title, style: "height: 100px; width: 100px !important;"  }
             .col-9
               .card-body
                 .card-title= schedule.song.title

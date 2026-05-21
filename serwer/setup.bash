@@ -6,3 +6,7 @@ source venv/bin/activate
 pip install spotdl
 spotdl --download-deno
 mkdir music_data
+
+apt install libvips42
+
+bundle install
