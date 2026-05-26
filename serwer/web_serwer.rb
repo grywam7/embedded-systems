@@ -1,18 +1,21 @@
 require 'sinatra'
 require 'Haml'
 require 'data_mapper'
-require 'pry'
 require 'json/pure'
 require 'taglib'
 require 'thread'
 require 'vips'
+require 'serialport'
+
+#development
+require 'pry'
 
 DataMapper::setup(:default, "sqlite3://#{Dir.pwd}/music.db")
 require_relative 'models/schedule'
 require_relative 'models/song'
-require_relative 'music_downloader_service'
-require_relative 'music_player_service'
-
+require_relative 'services/music_downloader_service'
+require_relative 'services/music_player_service'
+require_relative 'services/usb_communication_service'
 DataMapper.finalize
 Song.auto_upgrade!
 Schedule.auto_upgrade!
