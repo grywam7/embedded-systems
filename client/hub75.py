@@ -799,9 +799,9 @@ class Hub75:
                                 self.set_pixel(
                                     x_BMP,
                                     y_BMP,
-                                    r,
                                     g,
                                     b,
+                                    r,
                                     self.VIEWPORT_X,
                                     self.VIEWPORT_Y,
                                     self.VIEWPORT_XMAX,
@@ -824,9 +824,9 @@ class Hub75:
                                 self.set_pixel(
                                     x_BMP,
                                     y_BMP,
-                                    rr,
                                     gg,
                                     bb,
+                                    rr,
                                     self.VIEWPORT_X,
                                     self.VIEWPORT_Y,
                                     self.VIEWPORT_XMAX,
