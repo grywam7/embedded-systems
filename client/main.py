@@ -1,6 +1,5 @@
 
 from hub75 import Hub75
-import time
 
 matrix = Hub75(
     data_pin_start=0,
@@ -11,11 +10,40 @@ matrix = Hub75(
     blocks_per_row=16
 )
 
+matrix.fill(0, 255, 0)
+matrix.refresh()
 
-# Load and draw image once
-matrix.load_bmp("image.bmp", x1=0, y1=0,brightness=0.5)
+import time
 
-# Keep refreshing the display
+import select
+import sys
+
+poller_in = select.poll()
+poller_in.register(sys.stdin, select.POLLIN)
+
+poller_out = select.poll()
+poller_out.register(sys.stdout, select.POLLOUT)
+
+
+# buf = "OK"
+# while True:
+#   poller_out
+#   sys.stdout.write(buf)
+#   time.sleep(1)
+
+buf = ""
+print("ready")
+
 while True:
-    matrix.refresh()
-    thread.sleep(0.1)
+  if poller.poll(0):
+    buf += sys.stdin.read(1)
+    if buf.endswith("\n"):
+      msg = buf.strip()
+      buf = ""
+      print("got:", msg)
+      print(msg)
+      print(msg == "HELLO")
+      if msg == "HELLO":
+        matrix.fill(255, 0, 0)
+        matrix.refresh()
+  time.sleep(0.01)
