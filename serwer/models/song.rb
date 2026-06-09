@@ -13,4 +13,8 @@ class Song
   def duration_string
     "#{duration / 60} m #{duration % 60} s"
   end
+
+  def music_path
+    "#{Dir.pwd}/music_data/#{artist} - #{title}.mp3"
+  end
 end

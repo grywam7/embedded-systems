@@ -36,7 +36,7 @@ class MusicPlayerService
   private
 
   def schedule(song)
-    File.open(@fifo_path, 'w') { |f| f.puts "L #{path_for(song)}"}
+    File.open(@fifo_path, 'w') { |f| f.puts "L #{song.music_path}"}
   end
 
   def play_loop
@@ -50,12 +50,8 @@ class MusicPlayerService
         Schedule.first.destroy
       end
       sleep 0.2
-    rescue e
+    rescue StandardError => e
       warn e.full_message
     end
-  end
-
-  def path_for(song)
-    "#{Dir.pwd}/music_data/#{song.artist} - #{song.title}.mp3"
   end
 end
