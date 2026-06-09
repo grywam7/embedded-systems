@@ -1,7 +1,10 @@
 class MusicDownloaderService
 
+  GAMMA_LUT = (0..255).map { |v| ((v / 255.0)**2.2 * 255).round.clamp(0, 255) }.freeze
+
   def initialize(song_url)
     @song_url = song_url
+    @song = nil
     # TO DO:
     # -> change this servie to async, so it doesn't block web server while downloading.
     # -> when spotDL fails to download song - we might be lucky using metadata to download it via yt-dlp
@@ -27,17 +30,16 @@ class MusicDownloaderService
     _metadata_file = File.open('song_metadata.spotdl', 'r').read
     _song_metadata = JSON.parse(_metadata_file).first
 
-    _song = Song.first_or_create(
+    @song = Song.first_or_create(
       title: _song_metadata['name'],
       artist: _song_metadata['artists'].join(', '),
       album: _song_metadata['album_name'],
       duration: _song_metadata['duration']
     )
-    _song_path = "#{Dir.pwd}/music_data/#{_song_metadata['artists'].join(', ')} - #{_song_metadata['name']}"
 
     ## try to find music file, if it doesn't exist, download it & extract cover image
     begin
-      File.open("#{_song_path}.mp3", 'r')
+      File.open("#{@song.music_path}", 'r')
     rescue Errno::ENOENT
       _download_result = %x{
         source venv/bin/activate
@@ -45,32 +47,70 @@ class MusicDownloaderService
       }
 
       if _download_result.include?('LookupError: No results found for song')
-        _song&.destroy
+        @song&.destroy
         return 'unknown'
       end
       
-      extract_cover_image(_song.id, _song_path)
-      resize_cover_image_to_64px(_song.id)
+      create_thumbnail
     end
 
-    _song.update(is_ready: true)
-    return _song.id
+    @song.update(is_ready: true)
+    return @song.id
   end
 
-  def extract_cover_image(song_id, song_path)
-    _cover_image_path = "#{Dir.pwd}/public/cover_images/#{song_id}.jpg"
-
-    TagLib::MPEG::File.open("#{song_path}.mp3") do |mp3|
-      _cover = mp3.id3v2_tag.frame_list('APIC').first.picture
-      File.open(_cover_image_path, 'wb') {|f| f << _cover}
+  def extract_image
+    _cover_image_path = "#{Dir.pwd}/public/cover_images/#{@song.id}.jpg"
+    _image = ''
+    TagLib::MPEG::File.open("#{@song.music_path}") do |mp3|
+      File.open(_cover_image_path, 'wb') do |file|
+        _image = mp3.id3v2_tag.frame_list('APIC').first.picture
+        file << _image
+      end
     end
+    _image
   end
 
-  def resize_cover_image_to_64px(song_id)
-    _cover_image_path = "#{Dir.pwd}/public/cover_images_64px/#{song_id}.jpg"
-    _original_image_path = "#{Dir.pwd}/public/cover_images/#{song_id}.jpg"
+  def rgb_64x64_thumbnail
+    @rgb_64x64_thumbnail ||= Vips::Image.thumbnail_buffer(extract_image, 64, height: 64).colourspace('srgb').extract_band(0, n: 3).write_to_memory
+  end
 
-    Vips::Image.thumbnail(_original_image_path, 64, height: 64).write_to_file(_cover_image_path)
+  # Packs a 64x64 RGB image into the HUB75 bitplane-sliced framebuffer format
+  # consumed by client/hub75.py#load_frame — 8 bitplanes x 2048 bytes = 16384 bytes.
+  # Matches set_pixel's byte layout and the channel swap from load_bmp.
+  def create_thumbnail
+    rgb_64x64_thumbnail
+    Thread.new do
+      _bin_path = "#{Dir.pwd}/public/cover_images_bin/#{@song.id}.bin"
+      _planes = Array.new(8) { ("\x00".b * 2048) }
+
+      64.times do |y|
+        _shift = ((y >> 5) & 1) * 3
+        _mask  = 0b111 << _shift
+        _row_offset = (31 - (y & 31)) * 64
+
+        64.times do |x|
+          _i = (y * 64 + x) * 3
+          _r = GAMMA_LUT[rgb_64x64_thumbnail.getbyte(_i)]
+          _g = GAMMA_LUT[rgb_64x64_thumbnail.getbyte(_i + 1)]
+          _b = GAMMA_LUT[rgb_64x64_thumbnail.getbyte(_i + 2)]
+          _byte_index = x + _row_offset
+
+          8.times do |bp|
+            _bit  = 1 << bp
+            # Channel swap mirrors load_bmp's call to set_pixel(x, y, g, b, r, ...):
+            # bit2 = blue, bit1 = green, bit0 = red.
+            _bits = ((_b & _bit) >> bp) << 2 |
+                    ((_g & _bit) >> bp) << 1 |
+                    ((_r & _bit) >> bp)
+            _plane = _planes[bp]
+            _plane.setbyte(_byte_index, (_plane.getbyte(_byte_index) & ~_mask) | ((_bits << _shift) & 0xFF))
+          end
+        end
+      end
+
+      File.binwrite(_bin_path, _planes.join)
+    end
+    return true
   end
 
 

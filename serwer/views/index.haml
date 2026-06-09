@@ -14,7 +14,7 @@
 
 .container.m-5
   .row
-    .col-8
+    .col-xl-8.col-12
       .card.m-1
         .card_body
           .card_title.m-3 Add next song to playlist, by submitting its url below (youtube / spotify):
@@ -37,12 +37,12 @@
             .col-2.mx-auto.d-grid
               %a{href: "/player/volume_up", class: "btn btn-outline-primary" } ▲
 
-    .col-4
+    .col-xl-4.col-md-8.col-10
       - @schedule.each do |schedule|
         .card.song-card.m-1
           .row.g-0
             .col-3
-              %img.m-2.card-img-top{ src: "/cover_images_64px/#{schedule.song.id}.jpg", alt: schedule.song.title, style: "height: 100px; width: 100px !important;"  }
+              %img.m-2.card-img-top{ src: "/cover_images/#{schedule.song.id}.jpg", alt: schedule.song.title, style: "height: 100px; width: 100px !important;"  }
             .col-9
               .card-body
                 .card-title= schedule.song.title

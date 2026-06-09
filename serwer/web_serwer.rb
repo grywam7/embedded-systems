@@ -22,9 +22,14 @@ Schedule.auto_upgrade!
 
 Schedule.all.destroy # clear schedule on server start
 
+Song.all.each do |song| # clear songs that are not ready, to avoid errors with missing files
+  song.destroy
+end
+
 
 configure do
   set :music_player_service, MusicPlayerService.new()
+  set :usb_communication_service, UsbCommunicationService.new(settings.music_player_service)
 end
 
 get '/auth' do # Authentication of wi-fi connection

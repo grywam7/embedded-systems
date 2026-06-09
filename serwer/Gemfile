@@ -5,7 +5,9 @@ gem 'puma'
 gem 'haml'
 gem 'data_mapper'
 gem 'dm-sqlite-adapter'
-gem 'pry'
 gem 'taglib-ruby'
-gem 'audio-playback'
 gem 'ruby-vips'
+gem 'serialport'
+
+#development
+gem 'pry'

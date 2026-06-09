@@ -1248,6 +1248,11 @@ class Hub75:
             for i in range(8):
                 bytes_read = f.readinto(self.frame_buffer_temp[i])
 
+    def load_framebuffer(self, data):
+        for i in range(8):
+            self.frame_buffer_temp[i][:] = data[i*2048:(i+1)*2048]
+        # then call self.refresh() to publish (main.py already does)
+
     @micropython.native
     def scroll_vertical(self, amount):
         amount = amount % 64  # wrap around
