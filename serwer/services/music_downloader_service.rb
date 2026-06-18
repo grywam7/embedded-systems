@@ -20,8 +20,7 @@ class MusicDownloaderService
   def verify_spotify
     ## fetch song metadata only (cheap, no audio download)
     _metadata_extraction = %x{
-      source venv/bin/activate
-      spotdl save #{@song_url} --save-file song_metadata.spotdl
+      venv/bin/spotdl save #{@song_url} --save-file song_metadata.spotdl
     }
 
     return :not_found if _metadata_extraction.include?('LookupError: No results found for song')
@@ -52,8 +51,7 @@ class MusicDownloaderService
     ## download the audio file & extract cover image only if it isn't on disk yet
     unless File.exist?(@song.music_path)
       _download_result = %x{
-        source venv/bin/activate
-        spotdl --web-use-output-dir --output music_data download #{@song_url}
+        venv/bin/spotdl --web-use-output-dir --output music_data download #{@song_url}
       }
 
       if _download_result.include?('LookupError: No results found for song')
