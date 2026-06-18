@@ -95,6 +95,11 @@ get '/player/volume_down' do
   redirect '/', 303
 end
 
+get '/qr' do                      # test trigger: push a QR of this server's URL to the panel
+  settings.usb_communication_service.show_qr
+  redirect '/', 303
+end
+
 delete '/song/:id' do |id| # delete song from schedule
   Schedule.get(id).destroy
   @alert = 'successfuly_deleted'

@@ -1,5 +1,8 @@
+require_relative 'qr_service'
+
 class UsbCommunicationService
   BAUD = 115200
+  WEB_PORT = 4567   # must match the port the web app binds (see deploy/systemd unit)
 
   # Buttons on the Pico send "BTN:<n>\n"; map each to a MusicPlayerService command.
   BUTTON_COMMANDS = {
@@ -30,15 +33,29 @@ class UsbCommunicationService
 
   # Server -> Pico: stream a pre-packed 16 KB HUB75 framebuffer (length-prefixed).
   # Fire-and-forget: USB CDC is lossless, so no application-level ACK is required.
-  def send_cover_image(id, path)
+  def send_framebuffer(id, data)
     return unless @serial_port
 
-    data = File.binread(path)
     @write_mutex.synchronize do
       @serial_port.write("IMG:#{id}:#{data.bytesize}\n")
       @serial_port.write(data)
       @serial_port.flush
     end
+  end
+
+  def send_cover_image(id, path)
+    send_framebuffer(id, File.binread(path))
+  end
+
+  # Render a QR of this server's URL and push it to the panel (same image channel).
+  def show_qr
+    return unless @serial_port
+
+    send_framebuffer('QR', QrService.new(port: WEB_PORT).framebuffer)
+    true
+  rescue StandardError => e
+    warn "[usb] QR failed: #{e.message}"
+    false
   end
 
   def send_message(message)
@@ -90,8 +107,11 @@ class UsbCommunicationService
     return if line.empty?
 
     if line.start_with?('BTN:')
-      command = BUTTON_COMMANDS[line.split(':', 2).last.strip]
-      if command
+      code = line.split(':', 2).last.strip
+      if code == '5'                       # dedicated QR button
+        warn "[usb] #{line} -> QR"
+        show_qr
+      elsif (command = BUTTON_COMMANDS[code])
         warn "[usb] #{line} -> #{command}"
         @music_player_service.execute_command(command)
       end
