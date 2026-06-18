@@ -1,5 +1,5 @@
 require 'sinatra'
-require 'Haml'
+require 'haml'
 require 'data_mapper'
 require 'json/pure'
 require 'taglib'
