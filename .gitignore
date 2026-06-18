@@ -68,3 +68,11 @@ serwer/music_data/
 serwer/public/cover_images/
 serwer/title, artist/
 *.spotdl
+
+# Generated HUB75 cover framebuffers (built from the mp3 artwork at runtime)
+serwer/public/cover_images_bin/
+
+# Local dev / testing helpers (not part of the app)
+# e.g. serwer/test_usb.rb (USB/button harness), serwer/seed_demo.rb (demo DB seed)
+serwer/test_*.rb
+serwer/seed_*.rb

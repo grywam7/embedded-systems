@@ -7,7 +7,11 @@ class Song
 	property :album, String
 	property :duration, Integer
   property :is_ready, Boolean, default: false
-  
+  # Lifecycle of a download: pending (verified, queued) -> downloading -> ready / failed.
+  # is_ready stays the player's gate and is flipped true only when status == 'ready'.
+  property :status, String, default: 'pending'
+  property :error_message, Text
+
   has n, :schedules
 
   def duration_string

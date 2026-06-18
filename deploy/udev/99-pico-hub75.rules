@@ -1,0 +1,5 @@
+# Raspberry Pi Pico / Pico 2 W in USB-CDC mode (vendor 2e8a).
+# Gives a stable /dev/pico symlink and dialout-group access for the service user.
+# (The app also matches /dev/ttyACM* on Linux, so this is mainly for stable naming
+#  and permissions.)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2e8a", SYMLINK+="pico", GROUP="dialout", MODE="0660"
