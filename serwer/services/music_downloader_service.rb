@@ -5,28 +5,28 @@ class MusicDownloaderService
   def initialize(song_url)
     @song_url = song_url
     @song = nil
-    # TO DO:
-    # -> change this servie to async, so it doesn't block web server while downloading.
-    # -> when spotDL fails to download song - we might be lucky using metadata to download it via yt-dlp
-    # -> but, as this process takes time, we need to somehow inform user his request failed 
-    # -> so maybe in scheduled song just display it in RED colors, with error message
-    # _thread = Thread.new do
-    return download_spotify if @song_url.include?('spotify')
-    return download_other
-    # end
-    # _thread.abort_on_exception = true
   end
 
-  def download_spotify
-    ## download song metadata
+  # --- Step 1: verification (synchronous, runs inside the web request) ---
+  # Looks up the song's metadata and registers a pending Song. Returns the
+  # Song (status 'pending') if it is downloadable, or :not_found / :error.
+  # The heavy audio download is deferred to #download! via the queue worker.
+  def verify
+    return verify_spotify if @song_url.include?('spotify')
+    # yt-dlp / other providers are not supported yet.
+    :error
+  end
+
+  def verify_spotify
+    ## fetch song metadata only (cheap, no audio download)
     _metadata_extraction = %x{
       source venv/bin/activate
       spotdl save #{@song_url} --save-file song_metadata.spotdl
     }
 
-    return 'unknown' if _metadata_extraction.include?('LookupError: No results found for song')
-    
-    ## check if song already exists in db, if not create it
+    return :not_found if _metadata_extraction.include?('LookupError: No results found for song')
+
+    ## check if song already exists in db, if not create it (status defaults to 'pending')
     _metadata_file = File.open('song_metadata.spotdl', 'r').read
     _song_metadata = JSON.parse(_metadata_file).first
 
@@ -36,26 +36,40 @@ class MusicDownloaderService
       album: _song_metadata['album_name'],
       duration: _song_metadata['duration']
     )
+    @song
+  rescue StandardError => e
+    warn "[downloader] verify failed: #{e.message}"
+    :error
+  end
 
-    ## try to find music file, if it doesn't exist, download it & extract cover image
-    begin
-      File.open("#{@song.music_path}", 'r')
-    rescue Errno::ENOENT
+  # --- Step 2: download (heavy, runs in the background queue worker) ---
+  # Downloads the audio file and builds the cover thumbnail, then flips the
+  # song to ready. Any failure marks it failed with a user-facing message.
+  def download!(song)
+    @song = song
+    @song.update(status: 'downloading')
+
+    ## download the audio file & extract cover image only if it isn't on disk yet
+    unless File.exist?(@song.music_path)
       _download_result = %x{
         source venv/bin/activate
         spotdl --web-use-output-dir --output music_data download #{@song_url}
       }
 
       if _download_result.include?('LookupError: No results found for song')
-        @song&.destroy
-        return 'unknown'
+        @song.update(status: 'failed', error_message: 'Could not download this song, try a different provider.')
+        return false
       end
-      
+
       create_thumbnail
     end
 
-    @song.update(is_ready: true)
-    return @song.id
+    @song.update(status: 'ready', is_ready: true)
+    true
+  rescue StandardError => e
+    warn "[downloader] download failed: #{e.message}"
+    @song&.update(status: 'failed', error_message: e.message)
+    false
   end
 
   def extract_image
@@ -111,11 +125,6 @@ class MusicDownloaderService
       File.binwrite(_bin_path, _planes.join)
     end
     return true
-  end
-
-
-  def download_other
-
   end
 
 end

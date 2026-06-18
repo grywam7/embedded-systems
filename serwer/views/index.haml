@@ -2,14 +2,17 @@
 %script{ src:"https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js", integrity:"sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI", crossorigin:"anonymous" }
 
 - if !@alert.nil?
-  - if @alert == 'success'
-    .alert.alert-success 
+  - if @alert == 'queued'
+    .alert.alert-success
+      Got it — your song is downloading and will appear in the playlist shortly.
+  - elsif @alert == 'success'
+    .alert.alert-success
       Succesfuly added your song to playlist
   - elsif @alert == 'error'
     .alert.alert-danger
       Something went wrong, maybe the url you privided was incorect?
   - elsif @alert == 'unknown'
-    .alert.alert-warn 
+    .alert.alert-warning
       We cant find this song, you can try different provider.
 
 .container.m-5
@@ -39,12 +42,25 @@
 
     .col-xl-4.col-md-8.col-10
       - @schedule.each do |schedule|
-        .card.song-card.m-1
+        - song = schedule.song
+        .card.song-card.m-1{ class: ("border-danger" if song.status == 'failed') }
           .row.g-0
             .col-3
-              %img.m-2.card-img-top{ src: "/cover_images/#{schedule.song.id}.jpg", alt: schedule.song.title, style: "height: 100px; width: 100px !important;"  }
+              - if song.status == 'ready'
+                %img.m-2.card-img-top{ src: "/cover_images/#{song.id}.jpg", alt: song.title, style: "height: 100px; width: 100px !important;" }
+              - else
+                .m-2.d-flex.align-items-center.justify-content-center.bg-light.text-secondary{ style: "height: 100px; width: 100px;" }
+                  - if song.status == 'failed'
+                    %span.fs-3.text-danger ✕
+                  - else
+                    .spinner-border{ role: "status" }
             .col-9
               .card-body
-                .card-title= schedule.song.title
-                .card-text= "#{schedule.song.artist} - #{schedule.song.album}"
-                .card-text= "Duration: #{schedule.song.duration_string}"
+                .card-title= song.title
+                .card-text= "#{song.artist} - #{song.album}"
+                - if song.status == 'ready'
+                  .card-text= "Duration: #{song.duration_string}"
+                - elsif song.status == 'failed'
+                  .card-text.text-danger= song.error_message || 'Download failed'
+                - else
+                  .card-text.text-muted Downloading…

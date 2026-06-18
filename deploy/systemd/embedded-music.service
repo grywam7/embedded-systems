@@ -1,0 +1,20 @@
+[Unit]
+Description=Embedded Music HUB75 server (Sinatra + Pico over USB)
+# Wait for real connectivity (NetworkManager-wait-online provides this).
+After=network-online.target sound.target wifi-connect.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@APP_USER@
+SupplementaryGroups=audio dialout
+WorkingDirectory=@SERWER_DIR@
+Environment=HOME=/home/@APP_USER@
+Environment=PATH=/home/@APP_USER@/.rbenv/shims:/home/@APP_USER@/.rbenv/bin:/usr/local/bin:/usr/bin:/bin
+# -o 0.0.0.0 so the web UI is reachable from your phone/laptop, not just localhost.
+ExecStart=/home/@APP_USER@/.rbenv/shims/bundle exec ruby web_serwer.rb -o 0.0.0.0 -p @WEB_PORT@
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

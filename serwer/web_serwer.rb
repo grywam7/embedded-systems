@@ -14,6 +14,7 @@ DataMapper::setup(:default, "sqlite3://#{Dir.pwd}/music.db")
 require_relative 'models/schedule'
 require_relative 'models/song'
 require_relative 'services/music_downloader_service'
+require_relative 'services/download_queue_service'
 require_relative 'services/music_player_service'
 require_relative 'services/usb_communication_service'
 DataMapper.finalize
@@ -30,6 +31,7 @@ end
 configure do
   set :music_player_service, MusicPlayerService.new()
   set :usb_communication_service, UsbCommunicationService.new(settings.music_player_service)
+  set :download_queue_service, DownloadQueueService.new
 end
 
 get '/auth' do # Authentication of wi-fi connection
@@ -39,6 +41,7 @@ end
 get '/' do # Display, input form
   @schedule = Schedule.all :order => :id.asc
   @volume = settings.music_player_service.volume
+  @alert = params['alert'] # carried across the POST -> redirect so the ack shows
 
   haml :index
 end
@@ -47,26 +50,29 @@ get '/playlist' do # send playlist as json
   Schedule.all.to_json
 end
 
-post '/song/new' do # add new song to schedule
-  # add to Schedule model, with flag is_ready = false
+post '/song/new' do # verify the song, then acknowledge and download in the background
   _song_url = request.params['song_url'].strip
   _song_url.prepend('https://') if _song_url !~ /http/i
 
-  # add to downloader -> it wold be best if it was async
-  if _song_url.include?('spotify')
-    _song_id = MusicDownloaderService.new(_song_url).download_spotify
-  else
-    _song_id = MusicDownloaderService.new(_song_url).download_other
-  end
+  # Cheap, synchronous metadata lookup decides whether the song is downloadable.
+  _result = MusicDownloaderService.new(_song_url).verify
 
-  if _song_id
-    @alert = 'success'
-    Schedule.create(song_id: _song_id)
-  else
-    @alert = _song_id
-  end
+  _alert =
+    case _result
+    when :not_found then 'unknown'
+    when :error then 'error'
+    else
+      # Verified -> show it on the schedule now and download off the request path.
+      Schedule.create(song_id: _result.id)
+      if _result.status == 'ready'
+        'success' # already on disk (e.g. re-added), nothing to download
+      else
+        settings.download_queue_service.enqueue(_result.id, _song_url)
+        'queued'
+      end
+    end
 
-  redirect '/', 303
+  redirect "/?alert=#{_alert}", 303
 end
 
 get '/player/pause' do
