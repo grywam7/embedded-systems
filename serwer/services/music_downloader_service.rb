@@ -70,27 +70,31 @@ class MusicDownloaderService
     false
   end
 
+  # Returns the embedded cover bytes, or nil if the mp3 has no ID3v2 tag / no APIC
+  # frame (some downloads have no artwork) -> caller then skips the panel thumbnail.
   def extract_image
-    _cover_image_path = "#{Dir.pwd}/public/cover_images/#{@song.id}.jpg"
-    _image = ''
+    _image = nil
     TagLib::MPEG::File.open("#{@song.music_path}") do |mp3|
-      File.open(_cover_image_path, 'wb') do |file|
-        _image = mp3.id3v2_tag.frame_list('APIC').first.picture
-        file << _image
-      end
+      _apic = mp3.id3v2_tag&.frame_list('APIC')&.first
+      _image = _apic&.picture
     end
+    return nil unless _image
+    File.binwrite("#{Dir.pwd}/public/cover_images/#{@song.id}.jpg", _image)
     _image
   end
 
   def rgb_64x64_thumbnail
-    @rgb_64x64_thumbnail ||= Vips::Image.thumbnail_buffer(extract_image, 64, height: 64).colourspace('srgb').extract_band(0, n: 3).write_to_memory
+    return @rgb_64x64_thumbnail if defined?(@rgb_64x64_thumbnail)
+    _img = extract_image
+    @rgb_64x64_thumbnail = _img &&
+      Vips::Image.thumbnail_buffer(_img, 64, height: 64).colourspace('srgb').extract_band(0, n: 3).write_to_memory
   end
 
   # Packs a 64x64 RGB image into the HUB75 bitplane-sliced framebuffer format
   # consumed by client/hub75.py#load_frame — 8 bitplanes x 2048 bytes = 16384 bytes.
   # Matches set_pixel's byte layout and the channel swap from load_bmp.
   def create_thumbnail
-    rgb_64x64_thumbnail
+    return false unless rgb_64x64_thumbnail   # no embedded cover -> skip; song still plays
     Thread.new do
       _bin_path = "#{Dir.pwd}/public/cover_images_bin/#{@song.id}.bin"
       _planes = Array.new(8) { ("\x00".b * 2048) }

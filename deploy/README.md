@@ -45,15 +45,22 @@ Then **verify audio** (it plays from the Wyse, not your laptop):
 sudo -u music mpg123 -o alsa /opt/embedded-systems/serwer/music_data/*.mp3
 ```
 
-## 3. WiFi onboarding (after the AP-mode check passes)
+## 3. WiFi onboarding (comitup)
 
 ```
 sudo /opt/embedded-systems/deploy/wifi-onboarding.sh
 ```
-Installs **balena wifi-connect**. ⚠️ Verify the release version/asset URL inside the
-script first (balena's asset names drift between releases). On a boot with no known
-WiFi it raises the `Embedded-Music-Setup` AP + portal; enter your home WiFi and it
-connects, then the app starts.
+Installs **comitup** — an apt package that ships its own captive-portal UI (balena
+wifi-connect has no UI for x86_64, so it 404s on bare metal). When the box can't reach
+a known network it raises an AP `embedded-music-<nnn>`; join it from a phone, pick your
+WiFi, enter the password — comitup connects and remembers it.
+
+**comitup must OWN the WiFi.** It only auto-connects to networks added *through it*, and
+it fights a NetworkManager connection that auto-connects (you'll see the AP flap /
+`dnsmasq SIGTERM`). So onboard your home network via comitup once: delete the manual NM
+connection (`sudo nmcli connection delete "<SSID>"`), then add it back through
+`sudo comitup-cli` (console) or the phone portal. After that it connects when the
+network is in range and raises the AP when it isn't.
 
 ## 4. Run it
 
@@ -66,9 +73,9 @@ From a phone/laptop on the same network: **http://<box-ip>:4567/**
 ## Boot flow (how it hangs together)
 
 ```
-NetworkManager ──> wifi-connect.service ──(connected)──> network-online.target
-                     (AP + portal if no                          │
-                      known WiFi)                                 ▼
+NetworkManager ──> comitup.service ──────(connected)──> network-online.target
+                     (AP + portal if no                     │
+                      known WiFi)                            ▼
                                                        embedded-music.service
                                                        (bundle exec ruby web_serwer.rb -o 0.0.0.0)
 ```

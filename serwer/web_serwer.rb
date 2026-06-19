@@ -21,11 +21,8 @@ DataMapper.finalize
 Song.auto_upgrade!
 Schedule.auto_upgrade!
 
-Schedule.all.destroy # clear schedule on server start
-
-Song.all.each do |song| # clear songs that are not ready, to avoid errors with missing files
-  song.destroy
-end
+Schedule.all.destroy # clear only the queue on start; keep the Song table so
+                     # downloaded tracks (and their cover .bin ids) survive restarts
 
 
 configure do
