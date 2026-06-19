@@ -1,78 +1,59 @@
 #!/usr/bin/env bash
-# Install balena wifi-connect (captive-portal WiFi onboarding) + its systemd unit.
-# Run as root AFTER check-hardware.sh confirms the adapter supports AP mode.
+# WiFi onboarding via comitup (https://davesteele.github.io/comitup/).
+# comitup is built for headless Linux: when there's no known WiFi it raises an AP
+# and serves its OWN web UI to pick/enter the home network, then connects. Unlike
+# balena wifi-connect, it's an apt package that ships the UI -> no UI sourcing.
 #
-# Flow it gives you: boot with no known WiFi -> open AP "Embedded-Music-Setup" ->
-# user connects -> portal page -> pick home SSID + password -> box connects ->
-# AP torn down -> embedded-music.service starts.
-#
-# Idempotent & self-verifying: re-running fixes a partial install (e.g. binary
-# present but the UI assets missing -> the captive portal 404s).
+# Run as root. First cut for x86_64/Debian -- ends with diagnostics so we can
+# tune comitup.conf / services on the box.
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "run as root: sudo $0"; exit 1; }
-APP_DIR="/opt/embedded-systems"
-UI_DIR="/usr/local/share/wifi-connect/ui"   # must match --ui-directory in the unit
 
-command -v NetworkManager >/dev/null || { echo "NetworkManager missing -- run provision.sh first"; exit 1; }
+AP_NAME="${AP_NAME:-embedded-music-<nnn>}"   # comitup replaces <nnn> with a hash
 
-# --- pick the asset for this architecture (balena names them by Rust target) ---
-case "$(dpkg --print-architecture)" in
-  amd64) TARGET="x86_64-unknown-linux-gnu" ;;
-  arm64) TARGET="aarch64-unknown-linux-gnu" ;;
-  armhf) TARGET="armv7-unknown-linux-gnueabihf" ;;
-  *) echo "unsupported arch $(dpkg --print-architecture) -- set WC_ASSET manually"; exit 1 ;;
-esac
-WC_ASSET="${WC_ASSET:-wifi-connect-${TARGET}.tar.gz}"
+echo "== removing old balena wifi-connect leftovers =="
+systemctl disable --now wifi-connect 2>/dev/null || true
+rm -f /etc/systemd/system/wifi-connect.service /usr/local/sbin/wifi-connect
+rm -rf /usr/local/share/wifi-connect
+systemctl daemon-reload || true
 
-# --- resolve a version: latest from the GitHub API, with a pinned fallback ---
-WC_VERSION="${WC_VERSION:-$(curl -fsSL https://api.github.com/repos/balena-os/wifi-connect/releases/latest 2>/dev/null \
-  | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1)}"
-WC_VERSION="${WC_VERSION:-v4.11.1}"
-
-# Install only if the binary OR the UI is missing (so a half-done install heals).
-if ! command -v wifi-connect >/dev/null || [ ! -f "$UI_DIR/index.html" ]; then
-  echo "== fetching balena wifi-connect $WC_VERSION ($WC_ASSET) =="
+echo "== installing comitup =="
+export DEBIAN_FRONTEND=noninteractive
+if ! apt-cache policy comitup 2>/dev/null | grep -qE 'Candidate: +[0-9]'; then
+  # comitup isn't in Debian's repos; add David Steele's repo via his apt-source .deb
+  apt-get install -y ca-certificates curl
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-  url="https://github.com/balena-os/wifi-connect/releases/download/$WC_VERSION/$WC_ASSET"
-  if ! curl -fSL "$url" -o "$tmp/wc.tgz"; then
-    echo "DOWNLOAD FAILED: $url"
-    echo "-> check the releases page and set WC_VERSION / WC_ASSET, then re-run:"
-    echo "   sudo WC_VERSION=vX.Y.Z WC_ASSET=wifi-connect-${TARGET}.tar.gz $0"
+  SRC_URL="https://davesteele.github.io/comitup/deb/davesteele-comitup-apt-source_1.2_all.deb"
+  if ! curl -fSL "$SRC_URL" -o "$tmp/src.deb"; then
+    echo "FAILED to fetch comitup apt-source: $SRC_URL"
+    echo "-> sprawdź aktualny plik na https://davesteele.github.io/comitup/ i ustaw:"
+    echo "   sudo SRC_URL=<url> $0   (albo dodaj repo ręcznie)"
     exit 1
   fi
-  tar -xzf "$tmp/wc.tgz" -C "$tmp"
-
-  # Find the binary and the UI dir at ANY depth (tarball layout varies by release).
-  bin="$(find "$tmp" -type f -name wifi-connect | head -1)"
-  ui="$(find "$tmp" -type d -name ui | head -1)"
-  [ -n "$bin" ] || { echo "ERROR: no 'wifi-connect' binary inside $WC_ASSET"; exit 1; }
-  if [ -z "$ui" ]; then
-    echo "ERROR: no 'ui/' directory inside $WC_ASSET -- the captive portal needs it."
-    echo "Tarball contents were:"; find "$tmp" -maxdepth 3 | sed 's/^/   /'
-    echo "-> wrong asset? balena ships the binary + ui/ together; verify the asset name."
-    exit 1
-  fi
-
-  install -m0755 "$bin" /usr/local/sbin/wifi-connect
-  rm -rf "$UI_DIR"
-  mkdir -p "$(dirname "$UI_DIR")"
-  cp -r "$ui" "$UI_DIR"
+  dpkg -i "$tmp/src.deb" || apt-get -f install -y
+  apt-get update
 fi
+apt-get install -y comitup
 
-# Hard verification: the portal cannot work without index.html under --ui-directory.
-[ -f "$UI_DIR/index.html" ] || { echo "ERROR: UI still missing at $UI_DIR (no index.html)"; exit 1; }
+echo "== configuring /etc/comitup.conf =="
+# Keep a backup of whatever the package shipped, then set our AP name.
+[ -f /etc/comitup.conf ] && cp -n /etc/comitup.conf /etc/comitup.conf.orig || true
+cat > /etc/comitup.conf <<EOF
+# managed by deploy/wifi-onboarding.sh
+ap_name: $AP_NAME
+# web_service: embedded-music.service   # uncomment to (re)start the app after connect
+EOF
 
-install -m0644 "$APP_DIR/deploy/systemd/wifi-connect.service" /etc/systemd/system/wifi-connect.service
-systemctl daemon-reload
-systemctl enable wifi-connect.service
+systemctl enable comitup 2>/dev/null || true
 
 echo
-echo "== wifi-connect installed =="
-echo "binary: $(command -v wifi-connect)   UI: $UI_DIR ($(ls "$UI_DIR" | wc -l) entries)"
-cat <<'EOF'
-Test (only raises the AP when NOT on a known WiFi):
-  sudo systemctl start wifi-connect
-Then from a phone join "Embedded-Music-Setup" -> the portal should load (no 404).
-If the AP never appears: the adapter likely can't do AP mode (re-check with
-check-hardware.sh) -> use an AP-capable USB dongle and re-run this script.
-EOF
+echo "===================== DIAGNOSTYKA (wklej mi to) ====================="
+echo "--- wersja ---"; comitup --version 2>/dev/null || dpkg -l comitup | tail -1
+echo "--- usługi comitup* ---"; systemctl list-unit-files | grep -i comitup || echo "(brak unitów comitup?)"
+echo "--- interfejs wlan + NM ---"; nmcli device status 2>/dev/null | grep -iE 'wifi|wlan' || true
+echo "--- zależności (dnsmasq?) ---"; command -v dnsmasq >/dev/null && echo "dnsmasq: jest" || echo "dnsmasq: BRAK"
+echo "====================================================================="
+echo
+echo "Po sprawdzeniu diagnostyki uruchomimy/przetestujemy:"
+echo "  sudo systemctl restart comitup        # (potem) rozłącz znane WiFi, żeby podniósł AP"
+echo "  -> z telefonu połącz z '$AP_NAME-xxxx' i otwórz stronę wyboru sieci"
