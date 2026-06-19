@@ -23,6 +23,7 @@ Project for Embedded Systems class, 2026
 - obsługa wifi-managera (uzyskanie hasła do wi-fi i podłączenie się do lokalnej sieci)
 - obsługa cache’owania muzyki via spotify/youtube 
 - obsługa bazy w SQLite
+- obsługa aplikacji internetowej do dodawania kolejnych piosenek i zarządzania odtwarzaniem
 - przekazywanie poleceń od mikrokontrolera do odtwarzacza muzyki (stop, next, previous, volume up/down)
 -	przekazywanie grafiki (QR i okładek piosenek) do mikrokontrolera
 
