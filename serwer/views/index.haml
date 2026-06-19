@@ -47,7 +47,7 @@
           .row.g-0
             .col-3
               - if song.status == 'ready'
-                %img.m-2.card-img-top{ src: "/cover_images/#{song.id}.jpg", alt: song.title, style: "height: 100px; width: 100px !important;" }
+                %img.m-2.card-img-top{ src: "/cover_images/#{song.id}.jpg", alt: song.title, onerror: "this.style.display='none'", style: "height: 100px; width: 100px !important;" }
               - else
                 .m-2.d-flex.align-items-center.justify-content-center.bg-light.text-secondary{ style: "height: 100px; width: 100px;" }
                   - if song.status == 'failed'
