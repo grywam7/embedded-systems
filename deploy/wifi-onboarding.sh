@@ -19,18 +19,27 @@ systemctl daemon-reload || true
 
 echo "== installing comitup =="
 export DEBIAN_FRONTEND=noninteractive
-if ! apt-cache policy comitup 2>/dev/null | grep -qE 'Candidate: +[0-9]'; then
-  # comitup isn't in Debian's repos; add David Steele's repo via his apt-source .deb
-  apt-get install -y ca-certificates curl
-  tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-  SRC_URL="https://davesteele.github.io/comitup/deb/davesteele-comitup-apt-source_1.2_all.deb"
-  if ! curl -fSL "$SRC_URL" -o "$tmp/src.deb"; then
-    echo "FAILED to fetch comitup apt-source: $SRC_URL"
-    echo "-> sprawdź aktualny plik na https://davesteele.github.io/comitup/ i ustaw:"
-    echo "   sudo SRC_URL=<url> $0   (albo dodaj repo ręcznie)"
+if ! command -v comitup >/dev/null; then
+  apt-get install -y ca-certificates curl gnupg dirmngr
+  # David Steele's repo signing key. Debian 13's apt (sqv) verifies via signed-by,
+  # not the legacy trusted.gpg.d that the apt-source .deb uses (and that .deb often
+  # ships an older key than the one the repo is currently signed with). So fetch the
+  # exact key into a dedicated keyring and point the repo at it.
+  install -d /etc/apt/keyrings
+  KEY_FPR="${KEY_FPR:-4E1609F5CDFE5F2036961B66B5E293D64E192FDE}"
+  if ! gpg --no-default-keyring --keyring /tmp/cmt-key.gpg \
+        --keyserver hkps://keyserver.ubuntu.com --recv-keys "$KEY_FPR"; then
+    echo "FAILED to fetch comitup signing key $KEY_FPR from keyserver."
+    echo "-> sprawdź sieć, albo: sudo KEY_FPR=<fpr> $0  (lub inny keyserver)"
     exit 1
   fi
-  dpkg -i "$tmp/src.deb" || apt-get -f install -y
+  gpg --no-default-keyring --keyring /tmp/cmt-key.gpg --export \
+    > /etc/apt/keyrings/davesteele-comitup.gpg
+  rm -f /tmp/cmt-key.gpg
+  # replace any legacy comitup repo entry with a signed-by one
+  rm -f /etc/apt/sources.list.d/*comitup*.list
+  echo "deb [signed-by=/etc/apt/keyrings/davesteele-comitup.gpg] http://davesteele.github.io/comitup/repo comitup main" \
+    > /etc/apt/sources.list.d/comitup.list
   apt-get update
 fi
 apt-get install -y comitup
