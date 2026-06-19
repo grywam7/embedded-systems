@@ -27,15 +27,16 @@ if ! command -v comitup >/dev/null; then
   # exact key into a dedicated keyring and point the repo at it.
   install -d /etc/apt/keyrings
   KEY_FPR="${KEY_FPR:-4E1609F5CDFE5F2036961B66B5E293D64E192FDE}"
-  if ! gpg --no-default-keyring --keyring /tmp/cmt-key.gpg \
-        --keyserver hkps://keyserver.ubuntu.com --recv-keys "$KEY_FPR"; then
+  # gpg run as root has no ~/.gnupg -> can't make temp files / start dirmngr.
+  # Give it a fresh, private GNUPGHOME for this one-shot key fetch.
+  GNUPGHOME="$(mktemp -d)"; export GNUPGHOME; chmod 700 "$GNUPGHOME"
+  if ! gpg --batch --keyserver hkps://keyserver.ubuntu.com --recv-keys "$KEY_FPR"; then
     echo "FAILED to fetch comitup signing key $KEY_FPR from keyserver."
     echo "-> sprawdź sieć, albo: sudo KEY_FPR=<fpr> $0  (lub inny keyserver)"
-    exit 1
+    rm -rf "$GNUPGHOME"; exit 1
   fi
-  gpg --no-default-keyring --keyring /tmp/cmt-key.gpg --export \
-    > /etc/apt/keyrings/davesteele-comitup.gpg
-  rm -f /tmp/cmt-key.gpg
+  gpg --batch --export "$KEY_FPR" > /etc/apt/keyrings/davesteele-comitup.gpg
+  rm -rf "$GNUPGHOME"; unset GNUPGHOME
   # replace any legacy comitup repo entry with a signed-by one
   rm -f /etc/apt/sources.list.d/*comitup*.list
   echo "deb [signed-by=/etc/apt/keyrings/davesteele-comitup.gpg] http://davesteele.github.io/comitup/repo comitup main" \
