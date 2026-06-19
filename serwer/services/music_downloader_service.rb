@@ -52,7 +52,8 @@ class MusicDownloaderService
     @song = song
     @song.update(status: 'downloading')
 
-    ## download the audio file & extract cover image only if it isn't on disk yet
+    ## download the audio only if the file isn't on disk yet (mp3 is keyed by
+    ## artist/title, so it may already exist from a different song id)
     unless File.exist?(@song.music_path)
       _download_result = %x{
         venv/bin/spotdl --web-use-output-dir --output music_data download "#{@song_url}" 2>&1
@@ -62,9 +63,16 @@ class MusicDownloaderService
         @song.update(status: 'failed', error_message: 'Could not download this song, try a different provider.')
         return false
       end
-
-      create_thumbnail
     end
+
+    unless File.exist?(@song.music_path)
+      @song.update(status: 'failed', error_message: 'Download produced no audio file.')
+      return false
+    end
+
+    ## ALWAYS build the cover for THIS song id — covers are keyed by id, so a song
+    ## whose mp3 already existed (under another id) still needs its own id.jpg/.bin.
+    create_thumbnail
 
     @song.update(status: 'ready', is_ready: true)
     true
