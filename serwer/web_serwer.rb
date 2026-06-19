@@ -31,6 +31,8 @@ end
 configure do
   set :music_player_service, MusicPlayerService.new()
   set :usb_communication_service, UsbCommunicationService.new(settings.music_player_service)
+  # let the player push a song's cover to the panel when it starts
+  settings.music_player_service.usb_communication_service = settings.usb_communication_service
   set :download_queue_service, DownloadQueueService.new
 end
 
@@ -92,6 +94,11 @@ end
 
 get '/player/volume_down' do
   settings.music_player_service.execute_command('VOLUME_DOWN')
+  redirect '/', 303
+end
+
+get '/qr' do                      # test trigger: push a QR of this server's URL to the panel
+  settings.usb_communication_service.show_qr
   redirect '/', 303
 end
 

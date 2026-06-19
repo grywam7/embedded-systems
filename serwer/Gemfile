@@ -11,3 +11,5 @@ gem 'serialport'
 
 #development
 gem 'pry'
+
+gem "rqrcode", "~> 3.1"

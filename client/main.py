@@ -26,14 +26,13 @@ matrix.refresh()
 # GPIO 0-12 and 15 are claimed by the HUB75 driver (RGB data 0-5, address 6-10,
 # clock 11, latch 12, output-enable 15), so the buttons MUST avoid those. These
 # four are free on the Pico 2 W. Wire each to GND (internal pull-up, active-low).
-# GP19 is intentionally skipped: it's shorted to GP20 on the board, so the press
-# is read on GP20 alone. The backup button on GP22 provides NEXT. Each GPIO is
-# paired positionally with the BTN code below; the server maps
-# BTN:1=PAUSE, 2=NEXT, 3=VOLUME_UP, 4=VOLUME_DOWN.
-#   GP18 -> PAUSE/play   GP20 -> VOLUME_DOWN   GP21 -> VOLUME_UP   GP22 -> NEXT
+# Each GPIO is wired to GND (internal pull-up, active-low) and paired positionally
+# with the BTN code below; the server maps
+# BTN:1=PAUSE, 2=NEXT, 3=VOLUME_UP, 4=VOLUME_DOWN, 5=QR.
+#   GP18 -> PAUSE/play   GP19 -> QR   GP20 -> VOLUME_DOWN   GP21 -> VOLUME_UP   GP22 -> NEXT
 # ---------------------------------------------------------------------------
-BTN_GPIOS = (18, 20, 21, 22)
-BTN_MSGS = (b"BTN:1\n", b"BTN:4\n", b"BTN:3\n", b"BTN:2\n")
+BTN_GPIOS = (18, 19, 20, 21, 22)
+BTN_MSGS = (b"BTN:1\n", b"BTN:5\n", b"BTN:4\n", b"BTN:3\n", b"BTN:2\n")
 DEBOUNCE_MS = 50
 
 # Polling, NOT edge IRQs: long button wires + weak internal pull-ups let a press
