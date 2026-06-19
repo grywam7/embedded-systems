@@ -18,17 +18,21 @@ class MusicDownloaderService
   end
 
   def verify_spotify
-    ## fetch song metadata only (cheap, no audio download)
+    ## fetch song metadata only (cheap, no audio download). Quote the URL so
+    ## Spotify's ?si=...&... query params don't get mangled by the shell.
     _metadata_extraction = %x{
-      venv/bin/spotdl save #{@song_url} --save-file song_metadata.spotdl
+      venv/bin/spotdl save "#{@song_url}" --save-file song_metadata.spotdl 2>&1
     }
 
-    return :not_found if _metadata_extraction.include?('LookupError: No results found for song')
+    return :not_found if _metadata_extraction.include?('No results found')
+
+    ## spotdl writes an empty list ([]) when it found nothing / the URL is the wrong
+    ## type, so guard before indexing into the metadata.
+    return :not_found unless File.exist?('song_metadata.spotdl')
+    _song_metadata = JSON.parse(File.read('song_metadata.spotdl')).first
+    return :not_found if _song_metadata.nil?
 
     ## check if song already exists in db, if not create it (status defaults to 'pending')
-    _metadata_file = File.open('song_metadata.spotdl', 'r').read
-    _song_metadata = JSON.parse(_metadata_file).first
-
     @song = Song.first_or_create(
       title: _song_metadata['name'],
       artist: _song_metadata['artists'].join(', '),
@@ -51,10 +55,10 @@ class MusicDownloaderService
     ## download the audio file & extract cover image only if it isn't on disk yet
     unless File.exist?(@song.music_path)
       _download_result = %x{
-        venv/bin/spotdl --web-use-output-dir --output music_data download #{@song_url}
+        venv/bin/spotdl --web-use-output-dir --output music_data download "#{@song_url}" 2>&1
       }
 
-      if _download_result.include?('LookupError: No results found for song')
+      if _download_result.include?('No results found')
         @song.update(status: 'failed', error_message: 'Could not download this song, try a different provider.')
         return false
       end
