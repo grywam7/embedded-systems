@@ -31,6 +31,8 @@ end
 configure do
   set :music_player_service, MusicPlayerService.new()
   set :usb_communication_service, UsbCommunicationService.new(settings.music_player_service)
+  # let the player push a song's cover to the panel when it starts
+  settings.music_player_service.usb_communication_service = settings.usb_communication_service
   set :download_queue_service, DownloadQueueService.new
 end
 

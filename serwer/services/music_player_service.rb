@@ -1,5 +1,6 @@
 class MusicPlayerService
   attr_reader :volume
+  attr_accessor :usb_communication_service   # injected after both services exist
 
   def initialize
     @fifo_path = "#{Dir.pwd}/tmp/mpg123.fifo"
@@ -37,6 +38,9 @@ class MusicPlayerService
 
   def schedule(song)
     File.open(@fifo_path, 'w') { |f| f.puts "L #{song.music_path}"}
+    # When a song starts, push its cover to the panel (replaces the QR / prev cover).
+    _bin = "#{Dir.pwd}/public/cover_images_bin/#{song.id}.bin"
+    @usb_communication_service&.send_cover_image(song.id, _bin) if File.exist?(_bin)
   end
 
   def play_loop
