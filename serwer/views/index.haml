@@ -47,7 +47,7 @@
           .row.g-0
             .col-3
               - if song.status == 'ready'
-                %img.m-2.card-img-top{ src: "/cover_images/#{song.id}.jpg", alt: song.title, onerror: "this.style.display='none'", style: "height: 100px; width: 100px !important;" }
+                %img.m-2.card-img-top.bg-light.border{ src: "/cover_images/#{song.id}.jpg", alt: song.title, onerror: "this.onerror=null;this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='", style: "height: 100px; width: 100px !important; object-fit: cover;" }
               - else
                 .m-2.d-flex.align-items-center.justify-content-center.bg-light.text-secondary{ style: "height: 100px; width: 100px;" }
                   - if song.status == 'failed'
