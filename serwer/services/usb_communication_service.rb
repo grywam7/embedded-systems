@@ -48,10 +48,14 @@ class UsbCommunicationService
   end
 
   # Render a QR of this server's URL and push it to the panel (same image channel).
+  # The URL is stable for the device's lifetime (same LAN until restart), so the
+  # framebuffer is built once and cached; every later press is then just the USB
+  # send. If the LAN IP ever changes (DHCP), restart the service to rebuild it.
   def show_qr
     return unless @serial_port
 
-    send_framebuffer('QR', QrService.new(port: WEB_PORT).framebuffer)
+    @qr_framebuffer ||= QrService.new(port: WEB_PORT).framebuffer
+    send_framebuffer('QR', @qr_framebuffer)
     true
   rescue StandardError => e
     warn "[usb] QR failed: #{e.message}"
