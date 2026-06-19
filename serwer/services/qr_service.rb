@@ -18,7 +18,10 @@ class QrService
   end
 
   def url
-    "http://#{@host || local_ip}:#{@port}"
+    # Uppercase scheme: URI schemes are case-insensitive, so this still opens as a
+    # normal link, but "HTTP://1.2.3.4:5" is entirely alphanumeric -> the QR uses the
+    # dense alphanumeric mode -> fewer modules -> bigger, easier-to-scan squares.
+    "HTTP://#{@host || local_ip}:#{@port}"
   end
 
   # 16384 bytes, ready to ship over the same IMG: channel as a cover.
@@ -48,7 +51,8 @@ class QrService
   # centered with the largest integer module size that leaves a quiet border.
   def render(mods)
     n = mods.size
-    scale = [SIZE / (n + 4), 1].max
+    # Largest integer module size that fits; the panel's dark frame is the quiet zone.
+    scale = [SIZE / n, 1].max
     off = (SIZE - n * scale) / 2
     rgb = ("\xFF".b * (SIZE * SIZE * 3)) # all white (lit)
     mods.each_with_index do |row, my|
