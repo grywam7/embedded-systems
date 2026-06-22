@@ -47,11 +47,24 @@ class MusicPlayerService
     loop do
       _message = @music_player_cli.gets
       if _message =~ /@P 0|@SILENCE/
-        while Schedule.first&.song&.is_ready != true
-          sleep 0.5
+        loop do
+          _entry = Schedule.first
+          if _entry.nil?
+            sleep 0.5
+            next                     # nothing queued -> keep waiting for a song
+          end
+          _song = _entry.song
+          if _song.nil? || _song.status == 'failed'
+            _entry.destroy           # drop failed/broken entries: unblock + auto-clear
+            next
+          end
+          if _song.is_ready
+            schedule(_song)
+            _entry.destroy
+            break                    # play the next ready song
+          end
+          sleep 0.5                  # still downloading -> wait for it
         end
-        schedule(Song.get(Schedule.first.song_id))
-        Schedule.first.destroy
       end
       sleep 0.2
     rescue StandardError => e
